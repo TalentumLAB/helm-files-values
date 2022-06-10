@@ -1,0 +1,111 @@
+replicaCount: 1
+
+image:
+  repository: apache/superset
+  tag: latest
+  pullPolicy: IfNotPresent
+
+extraEnv:
+  SMTP_HOST: smtp.gmail.com
+  SMTP_USER: user@gmail.com
+  SMTP_PORT: "587"
+  SMTP_MAIL_FROM: user@gmail.com
+
+extraSecretEnv:
+  SMTP_PASSWORD: xxxx
+
+service:
+  type: LoadBalancer
+  port: 8088
+  annotations: 
+    cloud.google.com/load-balancer-type: "External"
+
+#service:
+  #type: LoadBalancer
+  ##port: 80
+  #port: 8088
+  #annotations: 
+    #cloud.google.com/load-balancer-type: "External"
+    ##cloud.google.com/app-protocols: '{"": "HTTPS"}'
+    ##networking.gke.io/managed-certificates: managed-cert
+    ##kubernetes.io/ingress.allow-http: "false"
+    ##cloud.google.com/backend-config: '{"default": "api-default-config"}'
+    ##cloud.google.com/neg: '{"exposed_ports": {"8080":{}}}'
+  #loadBalancerIP: 34.73.125.79
+
+#service:
+  #type: ClusterIP
+  #port: 8088
+  #annotations:
+    #cloud.google.com/load-balancer-type: "Internal"
+  #loadBalancerIP: null
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    #kubernetes.io/ingress.class: nginx
+    kubernetes.io/ingress.class: gce
+    #34.73.125.79
+    #kubernetes.io/ingress.global-static-ip-bi-superset: 34.73.125.79
+    #kubernetes.io/ingress.allow-http: "false" #error
+    cloud.google.com/app-protocols: '{"": "HTTPS"}'
+    #kubernetes.io/tls-acme: "true"
+    ## Extend timeout to allow long running queries.
+    cloud.google.com/neg: '{"ingress":true}'
+    cloud.google.com/backend-config: '{"default": "superset"}'
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Forwarded-Proto: https";
+
+  hosts:
+    - bi.talentum.edu.co
+  path: /
+  #tls: []
+
+resources:
+  limits:
+    cpu: 256m
+    memory: 512Mi
+  requests:
+    cpu: 256m
+    memory: 512Mi
+
+configOverrides:
+  smtp: |
+    import ast
+    SMTP_HOST = os.getenv("SMTP_HOST","localhost")
+    SMTP_STARTTLS = ast.literal_eval(os.getenv("SMTP_STARTTLS", "True"))
+    SMTP_SSL = ast.literal_eval(os.getenv("SMTP_SSL", "False"))
+    SMTP_USER = os.getenv("SMTP_USER","superset")
+    SMTP_PORT = os.getenv("SMTP_PORT",25)
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD","superset")
+  feature_flags: |
+    ENABLE_PROXY_FIX = True
+    FEATURE_FLAGS = {"ALERT_REPORTS": True,
+    "THUMBNAILS": True,
+    "THUMBNAILS_SQLA_LISTENERS": True,
+    "ENABLE_TEMPLATE_PROCESSING": True,
+    "DASHBOARD_NATIVE_FILTERS": True}
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 80
+  timeoutSeconds: 5
+  periodSeconds: 10
+  failureThreshold: 2
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  timeoutSeconds: 5
+  periodSeconds: 10
+  failureThreshold: 2
