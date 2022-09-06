@@ -1,0 +1,29 @@
+auth:
+  adminUser: admin
+  adminPassword: supersecurepassword
+service:
+  type: LoadBalancer
+extraEnvVars: 
+- name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
+  value: "true"
+- name: KEYCLOAK_FRONTEND_URL
+  value: "auth-lms.talentum.edu.co/auth"
+#- name: PROXY_ADDRESS_FORWARDING=
+#  value: "true"
+- name: KEYCLOAK_USER
+  value: "admin"
+- name: KEYCLOAK_PASSWORD
+  value: "supersecurepassword"
+- name: DB_ADDR
+  value: 35.237.169.249
+metrics:
+  enabled: false
+postgresql:
+  enabled: false
+externalDatabase:
+  host: 35.237.169.249
+  port: 5432  
+  user: keycloak-lms
+  database: keycloak-lms
+  password: 15Gm>7lNPs1zNf[E
+proxy: edge
